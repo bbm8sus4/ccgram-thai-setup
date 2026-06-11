@@ -1,0 +1,10 @@
+#!/bin/zsh
+# cmux-telegram — เปิดดู/เข้า session ที่ Telegram bot (ccgram) กำลังรันอยู่บน Mac
+# ออกโดยไม่ปิด session: ปิดหน้าต่าง terminal (Cmd+W) หรือ Ctrl-b d
+if tmux has-session -t ccgram 2>/dev/null; then
+  exec tmux attach -t ccgram
+else
+  echo "⚠️  ยังไม่มี session 'ccgram' — บอทอาจยังไม่เริ่มทำงาน"
+  echo "    ลองสั่ง:  launchctl kickstart -k gui/$(id -u)/com.user.ccgram"
+  exit 1
+fi

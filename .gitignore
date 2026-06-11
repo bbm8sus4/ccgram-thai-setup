@@ -1,0 +1,14 @@
+# ห้าม commit ความลับ/ค่าจริง เด็ดขาด
+.env
+*.env
+!*.env.example
+*.log
+events.jsonl
+monitor_state.json
+session_map.json
+*.bak-en
+*.bak-tune
+*.bak-cmds
+__pycache__/
+*.pyc
+.DS_Store

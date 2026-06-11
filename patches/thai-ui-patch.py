@@ -89,6 +89,15 @@ REPL = [
     ("Use in a topic", "ใช้ในหัวข้อ (Topic)"),
     ("Not your window", "ไม่ใช่หน้าต่างของคุณ"),
     ("Command not found", "ไม่พบคำสั่ง"),
+    # --- toolbar button labels (match ', "builtin"' context to skip emoji escapes) ---
+    ('"Screen", "builtin"', '"จอภาพ", "builtin"'),
+    ('"Live", "builtin"', '"สด", "builtin"'),
+    ('"Get File", "builtin"', '"เอาไฟล์", "builtin"'),
+    ('"Last", "builtin"', '"ล่าสุด", "builtin"'),
+    ('"Close", "builtin"', '"ปิดแถบ", "builtin"'),
+    # --- cancel (emoji-prefixed) + idle status ---
+    ('"✕ Cancel"', '"✕ ยกเลิก"'),
+    ('\\u2713 Ready', '\\u2713 พร้อม'),
 ]
 
 

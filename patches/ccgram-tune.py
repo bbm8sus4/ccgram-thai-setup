@@ -84,6 +84,8 @@ def patch_main(s):
 
 # ---------- 3) topic_lifecycle.py : pin-resilient probe ----------
 def patch_probe(s):
+    if "bot lacks pin rights" in s:
+        return s  # already patched — idempotent guard (NEW contains OLD else-block)
     if "_probe_pin_disabled" not in s:
         s = s.replace(
             "async def probe_topic_existence(client: TelegramClient) -> None:",
@@ -172,10 +174,82 @@ def patch_newbtn(s):
     )
 
 
+# ---------- 6) text_handler.py : ล็อก new-session ให้เริ่มที่ CCGRAM_QUICK_START_DIR เสมอ ----------
+def patch_fixed_dir(s):
+    # ข้าม window picker เมื่อมี fixed dir (topic ใหม่ = สร้าง session ใหม่ในโฟลเดอร์นั้นเสมอ)
+    s = s.replace(
+        "    if unbound:\n"
+        "        logger.info(\n"
+        '            "Unbound topic: showing window picker',
+        "    import os as _qs_os\n"
+        '    if unbound and not _qs_os.environ.get("CCGRAM_QUICK_START_DIR"):\n'
+        "        logger.info(\n"
+        '            "Unbound topic: showing window picker',
+        1,
+    )
+    # ล็อก root ของ directory browser ให้เป็น CCGRAM_QUICK_START_DIR (ถ้าตั้งไว้ + มีจริง)
+    s = s.replace(
+        "    start_path = str(Path.cwd())\n"
+        "    msg_text, keyboard, subdirs = build_directory_browser(start_path, user_id=user_id)",
+        '    import os as _qs_os2\n'
+        '    _qs_dir = _qs_os2.environ.get("CCGRAM_QUICK_START_DIR", "")\n'
+        "    start_path = _qs_dir if (_qs_dir and Path(_qs_dir).is_dir()) else str(Path.cwd())\n"
+        "    msg_text, keyboard, subdirs = build_directory_browser(start_path, user_id=user_id)",
+        1,
+    )
+    return s
+
+
+# ---------- 7) toolbar_config.py : ตัด toolbar เหลือ 2 แถวจำเป็น ----------
+_TB_MIN = (
+    '            ("screen", "live", "esc"),\n'
+    '            ("up", "enter", "down"),'
+)
+_TB_OLD = {
+    "claude": (
+        '            ("screen", "ctrlc", "live"),\n'
+        '            ("mode", "think", "esc"),\n'
+        '            ("up", "enter", "down"),\n'
+        '            ("last", "getfile", "close"),'
+    ),
+    "codex": (
+        '            ("screen", "ctrlc", "live"),\n'
+        '            ("esc", "tab", "mode"),\n'
+        '            ("up", "enter", "down"),\n'
+        '            ("last", "getfile", "close"),'
+    ),
+    "gemini": (
+        '            ("screen", "ctrlc", "live"),\n'
+        '            ("mode", "yolo", "esc"),\n'
+        '            ("up", "enter", "down"),\n'
+        '            ("last", "getfile", "close"),'
+    ),
+    "pi": (
+        '            ("screen", "ctrlc", "live"),\n'
+        '            ("esc", "tab", "model"),\n'
+        '            ("up", "enter", "down"),\n'
+        '            ("last", "getfile", "close"),'
+    ),
+    "shell": (
+        '            ("screen", "ctrlc", "live"),\n'
+        '            ("enter", "eof", "susp"),\n'
+        '            ("last", "getfile", "esc", "close"),'
+    ),
+}
+
+
+def patch_toolbar(s):
+    for _prov, old in _TB_OLD.items():
+        s = s.replace(old, _TB_MIN, 1)
+    return s
+
+
 print("=== ccgram structural tuning ===")
+apply("toolbar_config.py", patch_toolbar)
 apply("cc_commands.py", patch_cc)
 apply("main.py", patch_main)
 apply("handlers/topics/topic_lifecycle.py", patch_probe)
 apply("handlers/topics/directory_callbacks.py", patch_quickstart)
 apply("handlers/sessions_dashboard.py", patch_newbtn)
+apply("handlers/text/text_handler.py", patch_fixed_dir)
 print("\nDone. Restart:  launchctl kickstart -k gui/$(id -u)/com.user.ccgram")

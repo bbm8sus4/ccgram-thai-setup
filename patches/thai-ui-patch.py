@@ -101,6 +101,10 @@ REPL = [
     # --- status-bubble keyboard (hardcoded ใน status_bubble.py, มี emoji escape) ---
     ('\\U0001f4c4 Last', '\\U0001f4c4 ล่าสุด'),
     ('\\U0001f4e5 Get File', '\\U0001f4e5 เอาไฟล์'),
+    # --- created window / bound message ---
+    ("Created window '", "สร้างห้อง '"),
+    ("' at {path}", "' ที่ {path}"),
+    ("Bound to this topic. Send messages here.", "ผูกกับหัวข้อนี้แล้ว พิมพ์สั่งงานได้เลย"),
     # --- cancel (emoji-prefixed) + idle status ---
     ('"✕ Cancel"', '"✕ ยกเลิก"'),
     ('\\u2713 Ready', '\\u2713 พร้อม'),

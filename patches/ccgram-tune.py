@@ -247,7 +247,103 @@ def patch_toolbar(s):
     return s
 
 
+# ---------- 8) ปิด 🤔 reaction (รก แปะหน้าคิดบนข้อความ user) ----------
+def patch_react(s):
+    # ปิด 🤔 ในระบบ react ทั่วไป (เก็บ ⚡/🔥/💔 ไว้)
+    if 'if emoji == "\U0001f914"' in s:
+        return s  # idempotent guard (NEW contains OLD anchor)
+    s = s.replace(
+        "    if emoji not in ALLOWED_REACTIONS:",
+        '    if emoji == "\U0001f914":\n'
+        "        return True\n"
+        "    if emoji not in ALLOWED_REACTIONS:",
+        1,
+    )
+    return s
+
+
+def patch_react_general(s):
+    # ปิด 🤔 ใน General topic
+    s = s.replace(
+        "        with contextlib.suppress(TelegramError):\n"
+        '            await message.set_reaction("\U0001f914")',
+        "        with contextlib.suppress(TelegramError):\n"
+        "            pass  # 🤔 reaction disabled (noise)",
+        1,
+    )
+    return s
+
+
+# ---------- 9) Get File: กดทีเดียวส่งไฟล์ล่าสุด (ไม่เปิด browser) ----------
+def patch_getfile(s):
+    old = (
+        "    # Lazy: send subpackage ↔ status_bar_actions cycle\n"
+        "    from ..send import open_file_browser\n"
+        "\n"
+        "    await open_file_browser(\n"
+        "        PTBTelegramClient(query.get_bot()),\n"
+        "        chat_id,\n"
+        "        thread_id,\n"
+        "        context.user_data,\n"
+        "        window_id,\n"
+        "        cwd,\n"
+        "    )\n"
+        "    await query.answer()"
+    )
+    new = (
+        "    # one-tap: ส่งไฟล์ล่าสุดในโฟลเดอร์ session ตรงๆ (ไม่เปิด browser)\n"
+        "    import os as _gf_os\n"
+        "    from ..send.send_command import upload_file as _gf_upload\n"
+        "    _GF_RICH = ('.pdf', '.html', '.htm', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.ppt', '.csv', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.zip', '.rar', '.7z', '.mp4', '.mov', '.mp3', '.wav', '.m4a', '.epub')\n"
+        "    _GF_TEXT = ('.txt', '.md', '.rtf')\n"
+        "    _GF_NOISE = ('.json', '.jsonl', '.lock', '.log', '.pyc', '.pyo', '.tmp', '.swp', '.bak', '.pid')\n"
+        "    _gf_rich = None\n"
+        "    _gf_rich_mt = -1.0\n"
+        "    _gf_text = None\n"
+        "    _gf_text_mt = -1.0\n"
+        "    _gf_any = None\n"
+        "    _gf_any_mt = -1.0\n"
+        "    for _gf_root, _gf_dirs, _gf_files in _gf_os.walk(cwd):\n"
+        "        _gf_dirs[:] = [_d for _d in _gf_dirs if not _d.startswith('.') and _d not in ('node_modules', '__pycache__', 'venv', '.venv', 'dist', 'build')]\n"
+        "        for _gf_fn in _gf_files:\n"
+        "            _gf_low = _gf_fn.lower()\n"
+        "            if _gf_fn.startswith('.') or _gf_low.endswith(('.pem', '.key', '.p12', '.token')):\n"
+        "                continue\n"
+        "            if 'credential' in _gf_low or 'secret' in _gf_low:\n"
+        "                continue\n"
+        "            _gf_fp = _gf_os.path.join(_gf_root, _gf_fn)\n"
+        "            try:\n"
+        "                _gf_m = _gf_os.path.getmtime(_gf_fp)\n"
+        "            except OSError:\n"
+        "                continue\n"
+        "            _gf_ext = _gf_os.path.splitext(_gf_low)[1]\n"
+        "            if _gf_ext in _GF_RICH and _gf_m > _gf_rich_mt:\n"
+        "                _gf_rich_mt = _gf_m\n"
+        "                _gf_rich = Path(_gf_fp)\n"
+        "            elif _gf_ext in _GF_TEXT and _gf_m > _gf_text_mt:\n"
+        "                _gf_text_mt = _gf_m\n"
+        "                _gf_text = Path(_gf_fp)\n"
+        "            if _gf_ext not in _GF_NOISE and _gf_m > _gf_any_mt:\n"
+        "                _gf_any_mt = _gf_m\n"
+        "                _gf_any = Path(_gf_fp)\n"
+        "    _gf_latest = _gf_rich or _gf_text or _gf_any\n"
+        "    if _gf_latest is None:\n"
+        "        await query.answer('ไม่พบไฟล์ในโฟลเดอร์นี้', show_alert=True)\n"
+        "        return\n"
+        "    await query.answer('📤 ส่ง ' + _gf_latest.name + '…')\n"
+        "    try:\n"
+        "        await _gf_upload(PTBTelegramClient(query.get_bot()), chat_id, thread_id, _gf_latest)\n"
+        "    except Exception:\n"
+        "        import structlog as _gf_sl\n"
+        "        _gf_sl.get_logger().exception('get_file one-tap failed')"
+    )
+    return s.replace(old, new, 1)
+
+
 print("=== ccgram structural tuning ===")
+apply("handlers/status/status_bar_actions.py", patch_getfile)
+apply("handlers/reactions.py", patch_react)
+apply("utils.py", patch_react_general)
 apply("toolbar_config.py", patch_toolbar)
 apply("cc_commands.py", patch_cc)
 apply("main.py", patch_main)

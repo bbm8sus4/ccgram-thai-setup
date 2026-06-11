@@ -13,10 +13,13 @@
 ย้อนกลับ: คืนไฟล์ .bak-tune แล้ว restart
 """
 import re
+import glob
 import pathlib
 import py_compile
 
-PKG = pathlib.Path.home() / ".local/share/uv/tools/ccgram/lib/python3.14/site-packages/ccgram"
+# dynamic: รอด python version เปลี่ยนตอน uv tool upgrade
+_cands = sorted(glob.glob(str(pathlib.Path.home() / ".local/share/uv/tools/ccgram/lib/python*/site-packages/ccgram")))
+PKG = pathlib.Path(_cands[-1]) if _cands else pathlib.Path.home() / ".local/share/uv/tools/ccgram/lib/python3.14/site-packages/ccgram"
 
 
 def apply(relpath, transform):

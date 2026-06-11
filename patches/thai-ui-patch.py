@@ -10,10 +10,13 @@
 
 ย้อนกลับเป็นอังกฤษ: คืนไฟล์ .bak-en (มีอยู่ข้างไฟล์ที่ถูกแก้) แล้ว restart bot.
 """
+import glob
 import pathlib
 import py_compile
 
-PKG = pathlib.Path.home() / ".local/share/uv/tools/ccgram/lib/python3.14/site-packages/ccgram"
+# dynamic: รอด python version เปลี่ยนตอน uv tool upgrade
+_cands = sorted(glob.glob(str(pathlib.Path.home() / ".local/share/uv/tools/ccgram/lib/python*/site-packages/ccgram")))
+PKG = pathlib.Path(_cands[-1]) if _cands else pathlib.Path.home() / ".local/share/uv/tools/ccgram/lib/python3.14/site-packages/ccgram"
 
 # ordered: most-specific / longest first so substrings don't collide
 REPL = [

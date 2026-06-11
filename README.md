@@ -25,6 +25,11 @@
 - ตัด **คำสั่งเมนู 52 → 9** (เอา 37 ตัว `↗` ที่รกออก; ยังพิมพ์ใช้ได้)
 - ตั้งให้ AI (Claude/Codex/Gemini) **ตอบเป็นไทยธรรมชาติ** ไม่ใช่ภาษาแปล
 
+**ทนทานต่อ upgrade (safety net) — `bin/ccgram-guard.sh`**
+- launchd เรียก guard แทน `ccgram run` → ทุกครั้งที่บอทสตาร์ท: ตรวจ drift → **re-apply patch อัตโนมัติ** ถ้า `uv tool upgrade` ทับ → smoke-test → **แจ้งเขียว/แดงเข้า Telegram** → สตาร์ทบอท
+- patch scripts ใช้ path แบบ dynamic (รอด python version เปลี่ยน)
+- บั๊กฟิกซ์ 2 ตัว (log level, probe) ส่ง PR upstream แล้ว ([#108](https://github.com/alexei-led/ccgram/pull/108), [#109](https://github.com/alexei-led/ccgram/pull/109)) — ถ้า merge จะหลุดจาก patch โลคัล
+
 ---
 
 ## โครงสร้าง

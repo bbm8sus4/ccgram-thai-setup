@@ -13,8 +13,8 @@
 	<string>com.user.ccgram</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>__HOME__/.local/bin/ccgram</string>
-		<string>run</string>
+		<string>/bin/zsh</string>
+		<string>__HOME__/.ccgram/ccgram-guard.sh</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>

@@ -98,6 +98,9 @@ REPL = [
     ('"Get File", "builtin"', '"เอาไฟล์", "builtin"'),
     ('"Last", "builtin"', '"ล่าสุด", "builtin"'),
     ('"Close", "builtin"', '"ปิดแถบ", "builtin"'),
+    # --- status-bubble keyboard (hardcoded ใน status_bubble.py, มี emoji escape) ---
+    ('\\U0001f4c4 Last', '\\U0001f4c4 ล่าสุด'),
+    ('\\U0001f4e5 Get File', '\\U0001f4e5 เอาไฟล์'),
     # --- cancel (emoji-prefixed) + idle status ---
     ('"✕ Cancel"', '"✕ ยกเลิก"'),
     ('\\u2713 Ready', '\\u2713 พร้อม'),

@@ -340,7 +340,90 @@ def patch_getfile(s):
     return s.replace(old, new, 1)
 
 
+# ---------- 10) auto-send: Claude สร้างไฟล์เสร็จ -> ส่งเข้า topic เอง (เหมือน Discord) ----------
+def patch_autosend(s):
+    if "_autosend_new_files" in s:
+        return s  # idempotent
+    helper = (
+        "_autosend_seen: dict = {}\n"
+        "\n"
+        "\n"
+        "async def _autosend_new_files(client: TelegramClient, view, users: list) -> None:\n"
+        '    """ส่งไฟล์งานใหม่ (pdf/html/รูป/doc) ที่ agent เพิ่งสร้าง เข้า topic อัตโนมัติ."""\n'
+        "    import os as _as_os\n"
+        "    import time as _as_time\n"
+        "    if not view or not getattr(view, 'cwd', None) or not users:\n"
+        "        return\n"
+        "    cwd = str(view.cwd)\n"
+        "    if not _as_os.path.isdir(cwd):\n"
+        "        return\n"
+        "    user_id, thread_id, window_id = users[0]\n"
+        "    chat_id = thread_router.resolve_chat_id(user_id, thread_id) if thread_id else None\n"
+        "    if chat_id is None:\n"
+        "        return\n"
+        "    seen = _autosend_seen.setdefault(window_id, set())\n"
+        "    _RICH = ('.pdf', '.html', '.htm', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.ppt', '.csv', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.zip', '.mp4', '.mov', '.mp3', '.m4a', '.epub')\n"
+        "    cutoff = _as_time.time() - 300.0\n"
+        "    cands = []\n"
+        "    for _root, _dirs, _files in _as_os.walk(cwd):\n"
+        "        _dirs[:] = [_d for _d in _dirs if not _d.startswith('.') and _d not in ('node_modules', '__pycache__', 'venv', '.venv', 'dist', 'build', '.git')]\n"
+        "        for _fn in _files:\n"
+        "            _low = _fn.lower()\n"
+        "            if _fn.startswith('.') or _as_os.path.splitext(_low)[1] not in _RICH:\n"
+        "                continue\n"
+        "            if 'credential' in _low or 'secret' in _low:\n"
+        "                continue\n"
+        "            _fp = _as_os.path.join(_root, _fn)\n"
+        "            try:\n"
+        "                _st = _as_os.stat(_fp)\n"
+        "            except OSError:\n"
+        "                continue\n"
+        "            if _st.st_mtime < cutoff or _st.st_size == 0 or _st.st_size > 45 * 1024 * 1024:\n"
+        "                continue\n"
+        "            _sig = _fp + ':' + str(int(_st.st_mtime))\n"
+        "            if _sig in seen:\n"
+        "                continue\n"
+        "            cands.append((_st.st_mtime, _fp, _sig))\n"
+        "    if not cands:\n"
+        "        return\n"
+        "    cands.sort()\n"
+        "    cands = cands[-3:]\n"
+        "    from pathlib import Path as _AP\n"
+        "    from .send.send_command import upload_file as _as_upload\n"
+        "    for _mt, _fp, _sig in cands:\n"
+        "        seen.add(_sig)\n"
+        "        try:\n"
+        "            await _as_upload(client, chat_id, thread_id, _AP(_fp))\n"
+        "        except Exception:\n"
+        "            logger.debug('auto-send upload failed', exc_info=True)\n"
+        "    if len(seen) > 300:\n"
+        "        _autosend_seen[window_id] = set(sorted(seen)[-150:])\n"
+        "\n"
+        "\n"
+    )
+    s = s.replace(
+        "async def _handle_stop(event: HookEvent, client: TelegramClient) -> None:",
+        helper + "async def _handle_stop(event: HookEvent, client: TelegramClient) -> None:",
+        1,
+    )
+    s = s.replace(
+        "        await enqueue_status_update(\n"
+        "            client, user_id, window_id, status_text, thread_id=thread_id\n"
+        "        )",
+        "        await enqueue_status_update(\n"
+        "            client, user_id, window_id, status_text, thread_id=thread_id\n"
+        "        )\n"
+        "    try:\n"
+        "        await _autosend_new_files(client, view, users)\n"
+        "    except Exception:\n"
+        "        logger.debug('auto-send failed', exc_info=True)",
+        1,
+    )
+    return s
+
+
 print("=== ccgram structural tuning ===")
+apply("handlers/hook_events.py", patch_autosend)
 apply("handlers/status/status_bar_actions.py", patch_getfile)
 apply("handlers/reactions.py", patch_react)
 apply("utils.py", patch_react_general)
